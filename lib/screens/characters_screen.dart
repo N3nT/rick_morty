@@ -3,7 +3,14 @@ import '../models/character.dart';
 import '../services/api_service.dart';
 
 class CharactersScreen extends StatefulWidget {
-  const CharactersScreen({super.key});
+  final List<Character> favorites;
+  final Function(Character) onToggleFavorite;
+
+  const CharactersScreen({
+    super.key,
+    required this.favorites,
+    required this.onToggleFavorite,
+  });
 
   @override
   State<CharactersScreen> createState() => _CharactersScreenState();
@@ -15,7 +22,6 @@ class _CharactersScreenState extends State<CharactersScreen> {
   int totalPages = 1;
   bool isLoading = false;
   String? errorMessage;
-  List<Character> favorites = [];
 
   @override
   void initState() {
@@ -47,21 +53,13 @@ class _CharactersScreenState extends State<CharactersScreen> {
   }
 
   void goToPage(int page) {
-    setState(() {
-      currentPage = page;
-    });
+    setState(() => currentPage = page);
     loadCharacters();
   }
 
-  void toggleFavorite(Character character) {
-    final isFavorite = favorites.any((c) => c.id == character.id);
-    setState(() {
-      if (isFavorite) {
-        favorites.removeWhere((c) => c.id == character.id);
-      } else {
-        favorites.add(character);
-      }
-    });
+  void handleToggleFavorite(Character character) {
+    final isFavorite = widget.favorites.any((c) => c.id == character.id);
+    widget.onToggleFavorite(character);
     if (!isFavorite) {
       _showFavoritePopup(character);
     }
@@ -166,6 +164,8 @@ class _CharactersScreenState extends State<CharactersScreen> {
   }
 
   Widget _buildCharacterCard(Character character) {
+    final isFavorite = widget.favorites.any((c) => c.id == character.id);
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF161B22),
@@ -204,7 +204,7 @@ class _CharactersScreenState extends State<CharactersScreen> {
                   top: 6,
                   right: 6,
                   child: GestureDetector(
-                    onTap: () => toggleFavorite(character),
+                    onTap: () => handleToggleFavorite(character),
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
@@ -212,12 +212,8 @@ class _CharactersScreenState extends State<CharactersScreen> {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Icon(
-                        favorites.any((c) => c.id == character.id)
-                            ? Icons.star
-                            : Icons.star_border,
-                        color: favorites.any((c) => c.id == character.id)
-                            ? Colors.amber
-                            : Colors.white70,
+                        isFavorite ? Icons.star : Icons.star_border,
+                        color: isFavorite ? Colors.amber : Colors.white70,
                         size: 20,
                       ),
                     ),
@@ -290,18 +286,13 @@ class _CharactersScreenState extends State<CharactersScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Przycisk wstecz
           IconButton(
             onPressed: currentPage > 1 ? () => goToPage(currentPage - 1) : null,
             icon: const Icon(Icons.chevron_left),
             color: Colors.white,
             disabledColor: Colors.white24,
           ),
-          // Numery stron
-          Row(
-            children: _buildPageButtons(),
-          ),
-          // Przycisk dalej
+          Row(children: _buildPageButtons()),
           IconButton(
             onPressed: currentPage < totalPages ? () => goToPage(currentPage + 1) : null,
             icon: const Icon(Icons.chevron_right),
@@ -314,7 +305,6 @@ class _CharactersScreenState extends State<CharactersScreen> {
   }
 
   List<Widget> _buildPageButtons() {
-    // Pokazuje maks. 5 numerów stron wokół aktualnej
     final List<Widget> buttons = [];
     int start = (currentPage - 2).clamp(1, totalPages);
     int end = (start + 4).clamp(1, totalPages);

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/characters_screen.dart';
+import 'screens/main_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
       title: 'Rick & Morty',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(),
-      home: const CharactersScreen(),
+      home: const MainScreen(),
     );
   }
 }
