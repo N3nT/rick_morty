@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/character.dart';
 import '../services/api_service.dart';
+import '../services/database_service.dart';
 import 'character_detail_screen.dart';
 
 class CharactersScreen extends StatefulWidget {
@@ -23,6 +25,7 @@ class _CharactersScreenState extends State<CharactersScreen> {
   int currentPage = 1;
   int totalPages = 1;
   bool isLoading = false;
+  bool isOffline = false;
   String? errorMessage;
 
   // Filtry
@@ -51,7 +54,23 @@ class _CharactersScreenState extends State<CharactersScreen> {
       isLoading = true;
       errorMessage = null;
       currentPage = page;
+      isOffline = false;
     });
+
+    final hasFilters = searchController.text.isNotEmpty ||
+        filterStatus != null || filterGender != null ||
+        filterSpecies != null || filterType != null;
+
+    // Pokaż cache natychmiast gdy brak filtrów
+    if (!hasFilters) {
+      final cached = DatabaseService.loadCharacters(page);
+      if (cached != null) {
+        setState(() {
+          characters = cached.map((json) => Character.fromJson(json)).toList();
+          totalPages = DatabaseService.loadTotalPages('characters');
+        });
+      }
+    }
 
     try {
       final result = await ApiService.fetchCharacters(
@@ -66,10 +85,25 @@ class _CharactersScreenState extends State<CharactersScreen> {
         characters = result["characters"];
         totalPages = result["totalPages"];
       });
+      // Zapisz do Hive tylko gdy brak filtrów
+      if (!hasFilters) {
+        await DatabaseService.saveCharacters(page, result["characters"]);
+        await DatabaseService.saveTotalPages('characters', result["totalPages"]);
+      }
     } catch (e) {
-      setState(() {
-        errorMessage = e.toString();
-      });
+      final isNetworkError = e is SocketException ||
+          e is TimeoutException ||
+          e.toString().contains('SocketException') ||
+          e.toString().contains('Connection refused') ||
+          e.toString().contains('Network is unreachable');
+
+      if (isNetworkError && characters.isNotEmpty) {
+        setState(() => isOffline = true);
+      } else if (isNetworkError && characters.isEmpty) {
+        setState(() => errorMessage = "Brak połączenia z internetem.");
+      } else {
+        setState(() => errorMessage = e.toString());
+      }
     } finally {
       setState(() => isLoading = false);
     }
@@ -347,8 +381,27 @@ class _CharactersScreenState extends State<CharactersScreen> {
         children: [
           _buildSearchBar(),
           if (hasActiveFilters) _buildActiveFiltersRow(),
+          if (isOffline) _buildOfflineBanner(),
           Expanded(child: _buildBody()),
           if (totalPages > 1) _buildPagination(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOfflineBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: const Color(0xFF2A1F0E),
+      child: const Row(
+        children: [
+          Icon(Icons.wifi_off, color: Colors.orange, size: 16),
+          SizedBox(width: 8),
+          Text(
+            "Tryb offline — dane z pamięci podręcznej",
+            style: TextStyle(color: Colors.orange, fontSize: 12),
+          ),
         ],
       ),
     );

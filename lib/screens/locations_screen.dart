@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/location.dart';
 import '../services/api_service.dart';
+import '../services/database_service.dart';
 import 'location_detail_screen.dart';
 
 class LocationsScreen extends StatefulWidget {
@@ -15,6 +17,7 @@ class _LocationsScreenState extends State<LocationsScreen> {
   int currentPage = 1;
   int totalPages = 1;
   bool isLoading = false;
+  bool isOffline = false;
   String? errorMessage;
 
   @override
@@ -28,7 +31,16 @@ class _LocationsScreenState extends State<LocationsScreen> {
       isLoading = true;
       errorMessage = null;
       currentPage = page;
+      isOffline = false;
     });
+
+    final cached = DatabaseService.loadLocations(page);
+    if (cached != null) {
+      setState(() {
+        locations = cached.map((json) => Location.fromJson(json)).toList();
+        totalPages = DatabaseService.loadTotalPages('locations');
+      });
+    }
 
     try {
       final result = await ApiService.fetchLocations(page: page);
@@ -36,8 +48,20 @@ class _LocationsScreenState extends State<LocationsScreen> {
         locations = result["locations"];
         totalPages = result["totalPages"];
       });
+      await DatabaseService.saveLocations(page, result["locations"]);
+      await DatabaseService.saveTotalPages('locations', result["totalPages"]);
     } catch (e) {
-      setState(() => errorMessage = e.toString());
+      final isNetworkError = e is SocketException ||
+          e.toString().contains('SocketException') ||
+          e.toString().contains('Network is unreachable');
+
+      if (isNetworkError && locations.isNotEmpty) {
+        setState(() => isOffline = true);
+      } else if (isNetworkError && locations.isEmpty) {
+        setState(() => errorMessage = "Brak połączenia z internetem.");
+      } else {
+        setState(() => errorMessage = e.toString());
+      }
     } finally {
       setState(() => isLoading = false);
     }
@@ -83,8 +107,27 @@ class _LocationsScreenState extends State<LocationsScreen> {
       ),
       body: Column(
         children: [
+          if (isOffline) _buildOfflineBanner(),
           Expanded(child: _buildBody()),
           if (totalPages > 1) _buildPagination(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOfflineBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: const Color(0xFF2A1F0E),
+      child: const Row(
+        children: [
+          Icon(Icons.wifi_off, color: Colors.orange, size: 16),
+          SizedBox(width: 8),
+          Text(
+            "Tryb offline — dane z pamięci podręcznej",
+            style: TextStyle(color: Colors.orange, fontSize: 12),
+          ),
         ],
       ),
     );
