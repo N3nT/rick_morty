@@ -541,31 +541,36 @@ class _CharactersScreenState extends State<CharactersScreen> {
       );
     }
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(12),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.72,
-      ),
-      itemCount: characters.length,
-      itemBuilder: (context, index) {
-        final character = characters[index];
-        return GestureDetector(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => CharacterDetailScreen(
-                character: character,
-                isFavorite: widget.favorites.any((c) => c.id == character.id),
-                onToggleFavorite: handleToggleFavorite,
+    return RefreshIndicator(
+      color: const Color(0xFF00D4AA),
+      backgroundColor: const Color(0xFF161B22),
+      onRefresh: () => loadCharacters(page: currentPage),
+      child: GridView.builder(
+        padding: const EdgeInsets.all(12),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 0.72,
+        ),
+        itemCount: characters.length,
+        itemBuilder: (context, index) {
+          final character = characters[index];
+          return GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CharacterDetailScreen(
+                  character: character,
+                  isFavorite: widget.favorites.any((c) => c.id == character.id),
+                  onToggleFavorite: handleToggleFavorite,
+                ),
               ),
             ),
-          ),
-          child: _buildCharacterCard(character),
-        );
-      },
+            child: _buildCharacterCard(character),
+          );
+        },
+      ),
     );
   }
 

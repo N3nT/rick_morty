@@ -114,21 +114,26 @@ class _LocationsScreenState extends State<LocationsScreen> {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: locations.length,
-      itemBuilder: (context, index) {
-        final location = locations[index];
-        return GestureDetector(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => LocationDetailScreen(location: location),
+    return RefreshIndicator(
+      color: const Color(0xFF00D4AA),
+      backgroundColor: const Color(0xFF161B22),
+      onRefresh: () => loadLocations(page: currentPage),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(12),
+        itemCount: locations.length,
+        itemBuilder: (context, index) {
+          final location = locations[index];
+          return GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => LocationDetailScreen(location: location),
+              ),
             ),
-          ),
-          child: _buildLocationCard(location),
-        );
-      },
+            child: _buildLocationCard(location),
+          );
+        },
+      ),
     );
   }
 

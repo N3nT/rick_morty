@@ -108,21 +108,26 @@ class _EpisodesScreenState extends State<EpisodesScreen> {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: episodes.length,
-      itemBuilder: (context, index) {
-        final episode = episodes[index];
-        return GestureDetector(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => EpisodeDetailScreen(episode: episode),
+    return RefreshIndicator(
+      color: const Color(0xFF00D4AA),
+      backgroundColor: const Color(0xFF161B22),
+      onRefresh: () => loadEpisodes(page: currentPage),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(12),
+        itemCount: episodes.length,
+        itemBuilder: (context, index) {
+          final episode = episodes[index];
+          return GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => EpisodeDetailScreen(episode: episode),
+              ),
             ),
-          ),
-          child: _buildEpisodeCard(episode),
-        );
-      },
+            child: _buildEpisodeCard(episode),
+          );
+        },
+      ),
     );
   }
 
