@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/character.dart';
 import '../services/api_service.dart';
+import 'character_detail_screen.dart';
 
 class CharactersScreen extends StatefulWidget {
   final List<Character> favorites;
@@ -23,20 +25,43 @@ class _CharactersScreenState extends State<CharactersScreen> {
   bool isLoading = false;
   String? errorMessage;
 
+  // Filtry
+  final TextEditingController searchController = TextEditingController();
+  String? filterStatus;
+  String? filterGender;
+  String? filterSpecies;
+  String? filterType;
+  Timer? _debounce;
+
   @override
   void initState() {
     super.initState();
     loadCharacters();
   }
 
-  Future<void> loadCharacters() async {
+  @override
+  void dispose() {
+    searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  Future<void> loadCharacters({int page = 1}) async {
     setState(() {
       isLoading = true;
       errorMessage = null;
+      currentPage = page;
     });
 
     try {
-      final result = await ApiService.fetchCharacters(page: currentPage);
+      final result = await ApiService.fetchCharacters(
+        page: page,
+        name: searchController.text,
+        status: filterStatus,
+        gender: filterGender,
+        species: filterSpecies,
+        type: filterType,
+      );
       setState(() {
         characters = result["characters"];
         totalPages = result["totalPages"];
@@ -46,47 +71,263 @@ class _CharactersScreenState extends State<CharactersScreen> {
         errorMessage = e.toString();
       });
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      setState(() => isLoading = false);
     }
   }
 
-  void goToPage(int page) {
-    setState(() => currentPage = page);
-    loadCharacters();
+  void onSearchChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      loadCharacters(page: 1);
+    });
+  }
+
+  void goToPage(int page) => loadCharacters(page: page);
+
+  bool get hasActiveFilters =>
+      filterStatus != null ||
+          filterGender != null ||
+          filterSpecies != null ||
+          filterType != null;
+
+  void clearAllFilters() {
+    setState(() {
+      filterStatus = null;
+      filterGender = null;
+      filterSpecies = null;
+      filterType = null;
+      searchController.clear();
+    });
+    loadCharacters(page: 1);
   }
 
   void handleToggleFavorite(Character character) {
     final isFavorite = widget.favorites.any((c) => c.id == character.id);
     widget.onToggleFavorite(character);
-    if (!isFavorite) {
-      _showFavoritePopup(character);
-    }
+    if (!isFavorite) _showFavoritePopup(character);
   }
 
   void _showFavoritePopup(Character character) {
     final overlay = Overlay.of(context);
     late OverlayEntry entry;
-
     entry = OverlayEntry(
       builder: (context) => _FavoritePopup(
         character: character,
         onDone: () => entry.remove(),
       ),
     );
-
     overlay.insert(entry);
+  }
+
+  void openFilterSheet() {
+    // Lokalne kopie do edycji w bottom sheet
+    String? tempStatus = filterStatus;
+    String? tempGender = filterGender;
+    String? tempSpecies = filterSpecies;
+    String? tempType = filterType;
+    final speciesController = TextEditingController(text: filterSpecies ?? "");
+    final typeController = TextEditingController(text: filterType ?? "");
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF161B22),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Nagłówek
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Filtry",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          setSheetState(() {
+                            tempStatus = null;
+                            tempGender = null;
+                            tempSpecies = null;
+                            tempType = null;
+                            speciesController.clear();
+                            typeController.clear();
+                          });
+                        },
+                        child: const Text(
+                          "Wyczyść",
+                          style: TextStyle(color: Color(0xFF00D4AA)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Status
+                  const Text("Status", style: TextStyle(color: Colors.white70, fontSize: 13)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: ["alive", "dead", "unknown"].map((s) {
+                      final isSelected = tempStatus == s;
+                      return ChoiceChip(
+                        label: Text(s),
+                        selected: isSelected,
+                        onSelected: (_) => setSheetState(
+                              () => tempStatus = isSelected ? null : s,
+                        ),
+                        selectedColor: const Color(0xFF00D4AA),
+                        backgroundColor: const Color(0xFF0D1117),
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.black : Colors.white70,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                        side: BorderSide(
+                          color: isSelected ? const Color(0xFF00D4AA) : const Color(0xFF30363D),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Gender
+                  const Text("Płeć", style: TextStyle(color: Colors.white70, fontSize: 13)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: ["female", "male", "genderless", "unknown"].map((g) {
+                      final isSelected = tempGender == g;
+                      return ChoiceChip(
+                        label: Text(g),
+                        selected: isSelected,
+                        onSelected: (_) => setSheetState(
+                              () => tempGender = isSelected ? null : g,
+                        ),
+                        selectedColor: const Color(0xFF00D4AA),
+                        backgroundColor: const Color(0xFF0D1117),
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.black : Colors.white70,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                        side: BorderSide(
+                          color: isSelected ? const Color(0xFF00D4AA) : const Color(0xFF30363D),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Species
+                  const Text("Gatunek", style: TextStyle(color: Colors.white70, fontSize: 13)),
+                  const SizedBox(height: 8),
+                  _filterTextField(
+                    controller: speciesController,
+                    hint: "np. Human, Alien...",
+                    onChanged: (v) => tempSpecies = v.isEmpty ? null : v,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Type
+                  const Text("Typ", style: TextStyle(color: Colors.white70, fontSize: 13)),
+                  const SizedBox(height: 8),
+                  _filterTextField(
+                    controller: typeController,
+                    hint: "np. Parasite, Robot...",
+                    onChanged: (v) => tempType = v.isEmpty ? null : v,
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Zastosuj
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          filterStatus = tempStatus;
+                          filterGender = tempGender;
+                          filterSpecies = tempSpecies;
+                          filterType = tempType;
+                        });
+                        Navigator.pop(context);
+                        loadCharacters(page: 1);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00D4AA),
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        "Zastosuj",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _filterTextField({
+    required TextEditingController controller,
+    required String hint,
+    required Function(String) onChanged,
+  }) {
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.white38),
+        filled: true,
+        fillColor: const Color(0xFF0D1117),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF30363D)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF30363D)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF00D4AA)),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      ),
+    );
   }
 
   Color getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case "alive":
-        return Colors.green;
-      case "dead":
-        return Colors.red;
-      default:
-        return Colors.grey;
+      case "alive": return Colors.green;
+      case "dead": return Colors.red;
+      default: return Colors.grey;
     }
   }
 
@@ -98,18 +339,164 @@ class _CharactersScreenState extends State<CharactersScreen> {
         backgroundColor: const Color(0xFF161B22),
         title: const Text(
           "Rick & Morty",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
         ),
         centerTitle: true,
       ),
       body: Column(
         children: [
+          _buildSearchBar(),
+          if (hasActiveFilters) _buildActiveFiltersRow(),
           Expanded(child: _buildBody()),
-          _buildPagination(),
+          if (totalPages > 1) _buildPagination(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: searchController,
+              onChanged: onSearchChanged,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: "Szukaj postaci...",
+                hintStyle: const TextStyle(color: Colors.white38),
+                prefixIcon: const Icon(Icons.search, color: Colors.white38),
+                suffixIcon: searchController.text.isNotEmpty
+                    ? IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white38, size: 18),
+                  onPressed: () {
+                    searchController.clear();
+                    loadCharacters(page: 1);
+                  },
+                )
+                    : null,
+                filled: true,
+                fillColor: const Color(0xFF161B22),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: Color(0xFF30363D)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: Color(0xFF30363D)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: Color(0xFF00D4AA)),
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Przycisk filtrów z kropką gdy aktywne
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              IconButton(
+                onPressed: openFilterSheet,
+                icon: const Icon(Icons.tune),
+                color: hasActiveFilters ? const Color(0xFF00D4AA) : Colors.white54,
+                style: IconButton.styleFrom(
+                  backgroundColor: const Color(0xFF161B22),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    side: BorderSide(
+                      color: hasActiveFilters
+                          ? const Color(0xFF00D4AA)
+                          : const Color(0xFF30363D),
+                    ),
+                  ),
+                ),
+              ),
+              if (hasActiveFilters)
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF00D4AA),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveFiltersRow() {
+    final chips = <Widget>[];
+
+    if (filterStatus != null)
+      chips.add(_filterChip("Status: $filterStatus", () {
+        setState(() => filterStatus = null);
+        loadCharacters(page: 1);
+      }));
+    if (filterGender != null)
+      chips.add(_filterChip("Płeć: $filterGender", () {
+        setState(() => filterGender = null);
+        loadCharacters(page: 1);
+      }));
+    if (filterSpecies != null)
+      chips.add(_filterChip("Gatunek: $filterSpecies", () {
+        setState(() => filterSpecies = null);
+        loadCharacters(page: 1);
+      }));
+    if (filterType != null)
+      chips.add(_filterChip("Typ: $filterType", () {
+        setState(() => filterType = null);
+        loadCharacters(page: 1);
+      }));
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: chips),
+            ),
+          ),
+          TextButton(
+            onPressed: clearAllFilters,
+            child: const Text("Wyczyść", style: TextStyle(color: Colors.white38, fontSize: 12)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _filterChip(String label, VoidCallback onRemove) {
+    return Container(
+      margin: const EdgeInsets.only(right: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF00D4AA).withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF00D4AA).withOpacity(0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: const TextStyle(color: Color(0xFF00D4AA), fontSize: 11)),
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: onRemove,
+            child: const Icon(Icons.close, color: Color(0xFF00D4AA), size: 13),
+          ),
         ],
       ),
     );
@@ -117,9 +504,7 @@ class _CharactersScreenState extends State<CharactersScreen> {
 
   Widget _buildBody() {
     if (isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF00D4AA)),
-      );
+      return const Center(child: CircularProgressIndicator(color: Color(0xFF00D4AA)));
     }
 
     if (errorMessage != null) {
@@ -129,19 +514,28 @@ class _CharactersScreenState extends State<CharactersScreen> {
           children: [
             const Icon(Icons.error_outline, color: Colors.red, size: 48),
             const SizedBox(height: 12),
-            Text(
-              errorMessage!,
-              style: const TextStyle(color: Colors.white70),
-              textAlign: TextAlign.center,
-            ),
+            Text(errorMessage!, style: const TextStyle(color: Colors.white70), textAlign: TextAlign.center),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: loadCharacters,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00D4AA),
-              ),
+              onPressed: () => loadCharacters(page: 1),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00D4AA)),
               child: const Text("Spróbuj ponownie"),
             ),
+          ],
+        ),
+      );
+    }
+
+    if (characters.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_off, color: Colors.white24, size: 64),
+            SizedBox(height: 12),
+            Text("Brak wyników", style: TextStyle(color: Colors.white38, fontSize: 16)),
+            SizedBox(height: 4),
+            Text("Spróbuj innych filtrów", style: TextStyle(color: Colors.white24, fontSize: 13)),
           ],
         ),
       );
@@ -158,7 +552,19 @@ class _CharactersScreenState extends State<CharactersScreen> {
       itemCount: characters.length,
       itemBuilder: (context, index) {
         final character = characters[index];
-        return _buildCharacterCard(character);
+        return GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CharacterDetailScreen(
+                character: character,
+                isFavorite: widget.favorites.any((c) => c.id == character.id),
+                onToggleFavorite: handleToggleFavorite,
+              ),
+            ),
+          ),
+          child: _buildCharacterCard(character),
+        );
       },
     );
   }
@@ -176,7 +582,6 @@ class _CharactersScreenState extends State<CharactersScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Zdjęcie + gwiazdka
           Expanded(
             child: Stack(
               children: [
@@ -187,18 +592,10 @@ class _CharactersScreenState extends State<CharactersScreen> {
                   fit: BoxFit.cover,
                   loadingBuilder: (context, child, loadingProgress) {
                     if (loadingProgress == null) return child;
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF00D4AA),
-                        strokeWidth: 2,
-                      ),
-                    );
+                    return const Center(child: CircularProgressIndicator(color: Color(0xFF00D4AA), strokeWidth: 2));
                   },
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Center(
-                      child: Icon(Icons.broken_image, color: Colors.white38),
-                    );
-                  },
+                  errorBuilder: (context, error, stackTrace) =>
+                  const Center(child: Icon(Icons.broken_image, color: Colors.white38)),
                 ),
                 Positioned(
                   top: 6,
@@ -222,7 +619,6 @@ class _CharactersScreenState extends State<CharactersScreen> {
               ],
             ),
           ),
-          // Informacje
           Padding(
             padding: const EdgeInsets.all(8),
             child: Column(
@@ -230,11 +626,7 @@ class _CharactersScreenState extends State<CharactersScreen> {
               children: [
                 Text(
                   character.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -250,24 +642,20 @@ class _CharactersScreenState extends State<CharactersScreen> {
                       ),
                     ),
                     const SizedBox(width: 5),
-                    Text(
-                      "${character.status} · ${character.species}",
-                      style: const TextStyle(
-                        color: Colors.white54,
-                        fontSize: 11,
+                    Expanded(
+                      child: Text(
+                        "${character.status} · ${character.species}",
+                        style: const TextStyle(color: Colors.white54, fontSize: 11),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
                 const SizedBox(height: 2),
                 Text(
                   character.locationName,
-                  style: const TextStyle(
-                    color: Colors.white38,
-                    fontSize: 11,
-                  ),
+                  style: const TextStyle(color: Colors.white38, fontSize: 11),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -366,18 +754,14 @@ class _FavoritePopupState extends State<_FavoritePopup>
       vsync: this,
       duration: const Duration(milliseconds: 350),
     );
-
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, -1),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-
     _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOut),
     );
-
     _controller.forward();
-
     Future.delayed(const Duration(seconds: 2), () async {
       if (mounted) {
         await _controller.reverse();
@@ -447,10 +831,7 @@ class _FavoritePopupState extends State<_FavoritePopup>
                         ),
                         const Text(
                           "Dodano do ulubionych",
-                          style: TextStyle(
-                            color: Colors.white60,
-                            fontSize: 11,
-                          ),
+                          style: TextStyle(color: Colors.white60, fontSize: 11),
                         ),
                       ],
                     ),

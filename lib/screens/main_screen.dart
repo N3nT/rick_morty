@@ -33,7 +33,7 @@ class _MainScreenState extends State<MainScreen> {
         favorites: favorites,
         onToggleFavorite: toggleFavorite,
       ),
-      FavoritesScreen(favorites: favorites),
+      FavoritesScreen(favorites: favorites, onToggleFavorite: toggleFavorite),
       const EpisodesScreen(),
       const LocationsScreen(),
     ];
