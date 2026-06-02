@@ -1,17 +1,107 @@
-# morty
+# Rick & Morty App
 
-A new Flutter project.
+Aplikacja mobilna napisana we **Flutterze**, wyświetlająca dane z [Rick and Morty API](https://rickandmortyapi.com). Umożliwia przeglądanie postaci, epizodów i lokacji ze świata serialu, a także zapisywanie ulubionych bohaterów.
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## Funkcjonalności
 
-A few resources to get you started if this is your first Flutter project:
+- **Lista postaci** z paginacją, wyszukiwaniem i filtrami (status, płeć, gatunek, typ)
+-  **Lista epizodów** z podziałem na sezony
+-  **Lista lokacji** z ikonami typów
+-  **Ulubione** — dodawanie i usuwanie postaci z listy ulubionych
+-  **Ekrany szczegółów** dla postaci, epizodów i lokacji
+-  **Tryb offline** — dane przechowywane lokalnie w Hive
+-  **Pull-to-refresh** — odświeżanie danych gestem przeciągnięcia
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+---
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Technologie
+
+| Technologia | Zastosowanie |
+|---|---|
+| Flutter | Framework mobilny |
+| Dart | Język programowania |
+| `http` | Zapytania REST API |
+| `hive_flutter` | Lokalna baza danych (offline) |
+| Firebase Analytics | Analityka i eventy |
+| Firebase Crashlytics | Monitorowanie błędów |
+
+---
+
+## REST API
+
+Aplikacja korzysta z [Rick and Morty API](https://rickandmortyapi.com) — darmowego, publicznego API niewymagającego klucza.
+
+Używane endpointy:
+
+```
+GET /character           — lista postaci (paginacja + filtry)
+GET /character/:id       — szczegóły postaci
+GET /episode             — lista epizodów
+GET /episode/:id         — szczegóły epizodu
+GET /location            — lista lokacji
+GET /location/:id        — szczegóły lokacji
+```
+
+---
+
+## Struktura projektu
+
+```
+lib/
+├── main.dart
+├── models/
+│   ├── character.dart
+│   ├── episode.dart
+│   └── location.dart
+├── services/
+│   ├── api_service.dart
+│   └── database_service.dart
+└── screens/
+    ├── main_screen.dart
+    ├── characters_screen.dart
+    ├── character_detail_screen.dart
+    ├── favorites_screen.dart
+    ├── episodes_screen.dart
+    ├── episode_detail_screen.dart
+    ├── locations_screen.dart
+    └── location_detail_screen.dart
+```
+
+---
+
+## Uruchomienie
+
+1. Sklonuj repozytorium:
+   ```bash
+   git clone https://github.com/N3nT/rick_morty
+   cd rick_morty
+   ```
+
+2. Zainstaluj zależności:
+   ```bash
+   flutter pub get
+   ```
+
+3. Uruchom aplikację:
+   ```bash
+   flutter run
+   ```
+
+> Wymagany Flutter SDK w wersji 3.0 lub nowszej.
+
+---
+
+## Zrzuty ekranu
+
+<img src="./readme_screens/characters.png" alt="Characters screen">
+<img src="./readme_screens/character.png" alt="Character screen">
+<img src="./readme_screens/filters.png" alt="Filters screen">
+<img src="./readme_screens/offline.png" alt="Offline screen">
+<img src="./readme_screens/favorites.png" alt="Favorites screen">
+<img src="./readme_screens/episode.png" alt="Episode screen">
+<img src="./readme_screens/episodes.png" alt="Episodes screen">
+<img src="./readme_screens/location.png" alt="Location screen">
+<img src="./readme_screens/locations.png" alt="Locations screen">
+---
