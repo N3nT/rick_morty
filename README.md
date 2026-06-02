@@ -96,12 +96,4 @@ lib/
 ## Zrzuty ekranu
 
 <img src="./readme_screens/characters.png" alt="Characters screen">
-<img src="./readme_screens/character.png" alt="Character screen">
-<img src="./readme_screens/filters.png" alt="Filters screen">
-<img src="./readme_screens/offline.png" alt="Offline screen">
-<img src="./readme_screens/favorites.png" alt="Favorites screen">
-<img src="./readme_screens/episode.png" alt="Episode screen">
-<img src="./readme_screens/episodes.png" alt="Episodes screen">
-<img src="./readme_screens/location.png" alt="Location screen">
-<img src="./readme_screens/locations.png" alt="Locations screen">
 ---
