@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/episode.dart';
 import '../models/character.dart';
 import '../services/api_service.dart';
+import '../services/firebase_service.dart';
 import 'character_detail_screen.dart';
 
 class EpisodeDetailScreen extends StatefulWidget {
@@ -22,6 +23,13 @@ class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
   void initState() {
     super.initState();
     loadCharacters();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FirebaseService.logEpisodeViewed(
+        widget.episode.id,
+        widget.episode.name,
+        widget.episode.episode,
+      );
+    });
   }
 
   Future<void> loadCharacters() async {

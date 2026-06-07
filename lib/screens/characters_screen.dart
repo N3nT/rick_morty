@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/character.dart';
 import '../services/api_service.dart';
 import '../services/database_service.dart';
+import '../services/firebase_service.dart';
 import 'character_detail_screen.dart';
 
 class CharactersScreen extends StatefulWidget {
@@ -91,18 +92,16 @@ class _CharactersScreenState extends State<CharactersScreen> {
         await DatabaseService.saveTotalPages('characters', result["totalPages"]);
       }
     } catch (e) {
-      final isNetworkError = e is SocketException ||
-          e is TimeoutException ||
-          e.toString().contains('SocketException') ||
-          e.toString().contains('Connection refused') ||
-          e.toString().contains('Network is unreachable');
+      final msg = e.toString();
+      final isNetworkError = msg.contains("Brak połączenia") ||
+          msg.contains("połączenia z serwerem") ||
+          msg.contains("czas oczekiwania") ||
+          e is SocketException;
 
       if (isNetworkError && characters.isNotEmpty) {
         setState(() => isOffline = true);
-      } else if (isNetworkError && characters.isEmpty) {
-        setState(() => errorMessage = "Brak połączenia z internetem.");
       } else {
-        setState(() => errorMessage = e.toString());
+        setState(() => errorMessage = msg);
       }
     } finally {
       setState(() => isLoading = false);
@@ -112,6 +111,7 @@ class _CharactersScreenState extends State<CharactersScreen> {
   void onSearchChanged(String value) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (value.isNotEmpty) FirebaseService.logSearch(value);
       loadCharacters(page: 1);
     });
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/location.dart';
 import '../models/character.dart';
 import '../services/api_service.dart';
+import '../services/firebase_service.dart';
 import 'character_detail_screen.dart';
 
 class LocationDetailScreen extends StatefulWidget {
@@ -22,6 +23,9 @@ class _LocationDetailScreenState extends State<LocationDetailScreen> {
   void initState() {
     super.initState();
     if (widget.location.residents.isNotEmpty) loadResidents();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FirebaseService.logLocationViewed(widget.location.id, widget.location.name);
+    });
   }
 
   Future<void> loadResidents() async {

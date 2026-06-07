@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/character.dart';
+import '../services/firebase_service.dart';
 
-class CharacterDetailScreen extends StatelessWidget {
+class CharacterDetailScreen extends StatefulWidget {
   final Character character;
   final bool isFavorite;
   final Function(Character) onToggleFavorite;
@@ -13,6 +14,23 @@ class CharacterDetailScreen extends StatelessWidget {
     required this.onToggleFavorite,
   });
 
+  @override
+  State<CharacterDetailScreen> createState() => _CharacterDetailScreenState();
+}
+
+class _CharacterDetailScreenState extends State<CharacterDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FirebaseService.logCharacterViewed(widget.character.id, widget.character.name);
+    });
+  }
+
+  Character get character => widget.character;
+  bool get isFavorite => widget.isFavorite;
+  Function(Character) get onToggleFavorite => widget.onToggleFavorite;
+
   Color getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case "alive": return Colors.green;
@@ -21,7 +39,6 @@ class CharacterDetailScreen extends StatelessWidget {
     }
   }
 
-  // Wyciąga numer epizodu z URL np. ".../episode/12" → "12"
   String parseEpisodeNumber(String url) {
     return url.split("/").last;
   }

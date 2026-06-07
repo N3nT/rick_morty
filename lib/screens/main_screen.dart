@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/character.dart';
+import '../services/firebase_service.dart';
 import 'characters_screen.dart';
 import 'favorites_screen.dart';
 import 'episodes_screen.dart';
@@ -17,13 +18,17 @@ class _MainScreenState extends State<MainScreen> {
   List<Character> favorites = [];
 
   void toggleFavorite(Character character) {
+    final isAdding = !favorites.any((c) => c.id == character.id);
     setState(() {
-      if (favorites.any((c) => c.id == character.id)) {
-        favorites.removeWhere((c) => c.id == character.id);
-      } else {
+      if (isAdding) {
         favorites.add(character);
+      } else {
+        favorites.removeWhere((c) => c.id == character.id);
       }
     });
+    if (isAdding) {
+      FirebaseService.logFavoriteAdded(character.id, character.name);
+    }
   }
 
   @override
