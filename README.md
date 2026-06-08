@@ -92,8 +92,3 @@ lib/
 > Wymagany Flutter SDK w wersji 3.0 lub nowszej.
 
 ---
-
-## Zrzuty ekranu
-
-<img src="./readme_screens/characters.png" alt="Characters screen">
----
