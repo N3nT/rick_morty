@@ -51,14 +51,13 @@ class _LocationsScreenState extends State<LocationsScreen> {
       await DatabaseService.saveLocations(page, result["locations"]);
       await DatabaseService.saveTotalPages('locations', result["totalPages"]);
     } catch (e) {
-      final isNetworkError = e is SocketException ||
-          e.toString().contains('SocketException') ||
-          e.toString().contains('Network is unreachable');
+      final isNetworkError = e.toString().contains("Brak połączenia") ||
+          e.toString().contains("połączenia z serwerem") ||
+          e.toString().contains("czas oczekiwania") ||
+          e is SocketException;
 
       if (isNetworkError && locations.isNotEmpty) {
         setState(() => isOffline = true);
-      } else if (isNetworkError && locations.isEmpty) {
-        setState(() => errorMessage = "Brak połączenia z internetem.");
       } else {
         setState(() => errorMessage = e.toString());
       }

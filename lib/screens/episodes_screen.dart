@@ -51,14 +51,13 @@ class _EpisodesScreenState extends State<EpisodesScreen> {
       await DatabaseService.saveEpisodes(page, result["episodes"]);
       await DatabaseService.saveTotalPages('episodes', result["totalPages"]);
     } catch (e) {
-      final isNetworkError = e is SocketException ||
-          e.toString().contains('SocketException') ||
-          e.toString().contains('Network is unreachable');
+      final isNetworkError = e.toString().contains("Brak połączenia") ||
+          e.toString().contains("połączenia z serwerem") ||
+          e.toString().contains("czas oczekiwania") ||
+          e is SocketException;
 
       if (isNetworkError && episodes.isNotEmpty) {
         setState(() => isOffline = true);
-      } else if (isNetworkError && episodes.isEmpty) {
-        setState(() => errorMessage = "Brak połączenia z internetem.");
       } else {
         setState(() => errorMessage = e.toString());
       }

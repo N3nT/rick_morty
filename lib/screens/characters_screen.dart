@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import '../models/character.dart';
 import '../services/api_service.dart';
 import '../services/database_service.dart';
-import '../services/firebase_service.dart';
 import 'character_detail_screen.dart';
+import '../services/firebase_service.dart';
 
 class CharactersScreen extends StatefulWidget {
   final List<Character> favorites;
@@ -652,8 +652,20 @@ class _CharactersScreenState extends State<CharactersScreen> {
                     if (loadingProgress == null) return child;
                     return const Center(child: CircularProgressIndicator(color: Color(0xFF00D4AA), strokeWidth: 2));
                   },
-                  errorBuilder: (context, error, stackTrace) =>
-                  const Center(child: Icon(Icons.broken_image, color: Colors.white38)),
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: const Color(0xFF161B22),
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Icon(Icons.person, color: Colors.white12, size: 40),
+                          SizedBox(height: 4),
+                          Text("Brak zdjęcia", style: TextStyle(color: Colors.white24, fontSize: 10)),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
                 Positioned(
                   top: 6,

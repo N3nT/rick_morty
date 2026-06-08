@@ -43,6 +43,25 @@ class _CharacterDetailScreenState extends State<CharacterDetailScreen> {
     return url.split("/").last;
   }
 
+  Widget _buildImagePlaceholder() {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: const Color(0xFF161B22),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.person, color: Colors.white12, size: 80),
+          const SizedBox(height: 8),
+          const Text(
+            "Brak zdjęcia",
+            style: TextStyle(color: Colors.white24, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -97,10 +116,13 @@ class _CharacterDetailScreenState extends State<CharacterDetailScreen> {
             Image.network(
               character.image,
               fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
               loadingBuilder: (context, child, loadingProgress) {
                 if (loadingProgress == null) return child;
                 return const Center(child: CircularProgressIndicator(color: Color(0xFF00D4AA)));
               },
+              errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(),
             ),
             // Gradient od dołu żeby nazwa była czytelna
             const DecoratedBox(

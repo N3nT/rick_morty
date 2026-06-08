@@ -133,8 +133,20 @@ class FavoritesScreen extends StatelessWidget {
                       ),
                     );
                   },
-                  errorBuilder: (context, error, stackTrace) =>
-                  const Center(child: Icon(Icons.broken_image, color: Colors.white38)),
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: const Color(0xFF161B22),
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Icon(Icons.person, color: Colors.white12, size: 40),
+                          SizedBox(height: 4),
+                          Text("Brak zdjęcia", style: TextStyle(color: Colors.white24, fontSize: 10)),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
                 // Gwiazdka — kliknięcie usuwa z ulubionych
                 Positioned(
